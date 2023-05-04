@@ -38,6 +38,7 @@ export type DocuNotionOptions = {
   imgOutputPath: string;
   imgPrefixInMarkdown: string;
   statusTag: string;
+  blogCoverImgPath: string;
 };
 
 let layoutStrategy: LayoutStrategy;
@@ -59,12 +60,12 @@ export async function notionPull(options: DocuNotionOptions): Promise<void> {
     optionsForLogging.notionToken.substring(0, 3) + "...";
 
   const config = await loadConfigAsync();
-
   verbose(`Options:${JSON.stringify(optionsForLogging, null, 2)}`);
   await initImageHandling(
     options.imgPrefixInMarkdown || options.imgOutputPath || "",
     options.imgOutputPath || "",
-    options.locales
+    options.locales,
+    options.blogCoverImgPath || ""
   );
 
   const notionClient = initNotionClient(options.notionToken);

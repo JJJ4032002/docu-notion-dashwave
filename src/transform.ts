@@ -7,6 +7,7 @@ import { error, info, logDebug, logDebugFn, verbose, warning } from "./log";
 import { NotionPage } from "./NotionPage";
 import { IDocuNotionConfig } from "./config/configuration";
 import { NotionBlock } from "./types";
+import { processImageBlock } from "./images";
 
 export async function getMarkdownForPage(
   config: IDocuNotionConfig,
@@ -30,7 +31,7 @@ export async function getMarkdownForPage(
   logDebugFn("markdown from page", () => JSON.stringify(blocks, null, 2));
 
   const body = await getMarkdownFromNotionBlocks(context, config, blocks);
-  const frontmatter = getFrontMatter(page); // todo should be a plugin
+  const frontmatter = await getFrontMatter(page, context); // todo should be a plugin
   return `${frontmatter}\n${body}`;
 }
 
@@ -253,12 +254,37 @@ function registerNotionToMarkdownCustomTransforms(
 }
 
 // enhance:make this built-in plugin so that it can be overridden
-function getFrontMatter(page: NotionPage): string {
+async function getFrontMatter(
+  page: NotionPage,
+  context: IDocuNotionContext
+): Promise<string> {
   let frontmatter = "---\n";
   frontmatter += `title: ${page.nameOrTitle.replaceAll(":", "-")}\n`; // I have not found a way to escape colons
   frontmatter += `sidebar_position: ${page.order}\n`;
   frontmatter += `slug: ${page.slug ?? ""}\n`;
+  if (page.authors !== "") {
+    frontmatter += `authors: ${page.authors}\n`;
+  }
+  if (page.tags !== "") {
+    frontmatter += `tags: [${page.tags}]\n`;
+  }
   if (page.keywords) frontmatter += `keywords: [${page.keywords}]\n`;
+  if (page.image !== null) {
+    await processImageBlock(
+      page.image,
+      context.directoryContainingMarkdown,
+      context.relativeFilePathToFolderContainingPage,
+      true
+    );
+    let href: string = "";
+    if (page.image.type === "file") {
+      href = page.image.file.url;
+    } else if (page.image.type === "external") {
+      href = page.image.external.url;
+    }
+
+    frontmatter += `image: ${href}\n`;
+  }
 
   frontmatter += "---\n";
   return frontmatter;

@@ -133,6 +133,32 @@ export class NotionPage {
   public get keywords(): string | undefined {
     return this.getPlainTextProperty("Keywords", "");
   }
+  public get authors(): string | undefined {
+    return this.getPlainTextProperty("authors", "");
+  }
+  public get tags(): string | undefined {
+    return this.getPlainTextProperty("tags", "");
+  }
+  public get image():
+    | {
+        file: {
+          url: string;
+          expiry_time?: string;
+        };
+        name: string;
+        type?: "file";
+      }
+    | {
+        external: {
+          url: string;
+        };
+        name: string;
+        type?: "external";
+      }
+    | null {
+    let files = this.getImageProperty();
+    return files !== null ? files[0] : null;
+  }
   public get status(): string | undefined {
     return this.getSelectProperty("Status");
   }
@@ -206,7 +232,27 @@ export class NotionPage {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return p.select?.name || undefined;
   }
-
+  public getImageProperty(): Array<
+    | {
+        file: {
+          url: string;
+          expiry_time?: string;
+        };
+        name: string;
+        type?: "file";
+      }
+    | {
+        external: {
+          url: string;
+        };
+        name: string;
+        type?: "external";
+      }
+  > | null {
+    const p = (this.metadata as any).properties?.["image"];
+    if (!p || p.files.length === 0) return null;
+    return p?.files;
+  }
   public getDateProperty(
     property: string,
     defaultIfEmpty: string,

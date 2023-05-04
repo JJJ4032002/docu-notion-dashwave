@@ -17,6 +17,7 @@ let existingImagesNotSeenYetInPull: string[] = [];
 let imageOutputPath = ""; // default to putting in the same directory as the document referring to it.
 let imagePrefix = ""; // default to "./"
 let locales: string[];
+let blogCoverImgPathGlobal = "";
 
 // we parse a notion image and its caption into what we need, which includes any urls to localized versions
 // of the image that may be embedded in the caption.
@@ -48,14 +49,15 @@ export type ImageSet = {
 export async function initImageHandling(
   prefix: string,
   outputPath: string,
-  incomingLocales: string[]
+  incomingLocales: string[],
+  blogCoverImgPath: string
 ): Promise<void> {
   // If they gave us a trailing slash, remove it because we add it back later.
   // Note that it's up to the caller to have a *leading* slash or not.
   imagePrefix = prefix.replace(/\/$/, "");
   imageOutputPath = outputPath;
   locales = incomingLocales;
-
+  blogCoverImgPathGlobal = blogCoverImgPath;
   // Currently we don't delete the image directory, because if an image
   // changes, it gets a new id. This way can then prevent downloading
   // and image after the 1st time. The downside is currently we don't
@@ -97,7 +99,8 @@ export async function markdownToMDImageTransformer(
   await processImageBlock(
     image,
     fullPathToDirectoryContainingMarkdown,
-    relativePathToThisPage
+    relativePathToThisPage,
+    false
   );
 
   // just concatenate the caption text parts together
@@ -110,11 +113,11 @@ export async function markdownToMDImageTransformer(
     image.type === "external" ? image.external.url : image.file.url;
   return `![${altText}](${href})`;
 }
-
-async function processImageBlock(
+export async function processImageBlock(
   imageBlock: any,
   pathToParentDocument: string,
-  relativePathToThisPage: string
+  relativePathToThisPage: string,
+  processBlogCoverImg: boolean
 ): Promise<void> {
   logDebug("processImageBlock", JSON.stringify(imageBlock));
 
@@ -126,7 +129,13 @@ async function processImageBlock(
   // so that this wasn't part of the markdown-creation loop. It's already almost there; we just need to
   // save the imageSets somewhere and then do the actual reading/writing later.
   await readPrimaryImage(imageSet);
-  makeImagePersistencePlan(imageSet, imageOutputPath, imagePrefix);
+  makeImagePersistencePlan(
+    imageSet,
+    imageOutputPath,
+    imagePrefix,
+    blogCoverImgPathGlobal,
+    processBlogCoverImg
+  );
   await saveImage(imageSet);
 
   // change the src to point to our copy of the image
@@ -202,11 +211,13 @@ function writeImageIfNew(path: string, buffer: Buffer) {
 }
 
 export function parseImageBlock(image: any): ImageSet {
-  if (!locales) throw Error("Did you call initImageHandling()?");
+  // if (!locales) throw Error("Did you call initImageHandling()?");
   const imageSet: ImageSet = {
     primaryUrl: "",
     caption: "",
-    localizedUrls: locales.map(l => ({ iso632Code: l, url: "" })),
+    localizedUrls: locales
+      ? locales.map(l => ({ iso632Code: l, url: "" }))
+      : [],
   };
 
   if ("file" in image) {
@@ -214,32 +225,33 @@ export function parseImageBlock(image: any): ImageSet {
   } else {
     imageSet.primaryUrl = image.external.url; // image still pointing somewhere else. I've see this happen when copying a Google Doc into Notion. Notion kep pointing at the google doc.
   }
+  if (image.caption) {
+    const mergedCaption: string = image.caption
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      .map((c: any) => c.plain_text)
+      .join("");
+    const lines = mergedCaption.split("\n");
 
-  const mergedCaption: string = image.caption
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    .map((c: any) => c.plain_text)
-    .join("");
-  const lines = mergedCaption.split("\n");
+    // Example:
+    // Caption before images.\nfr https://i.imgur.com/pYmE7OJ.png\nES  https://i.imgur.com/8paSZ0i.png\nCaption after images
 
-  // Example:
-  // Caption before images.\nfr https://i.imgur.com/pYmE7OJ.png\nES  https://i.imgur.com/8paSZ0i.png\nCaption after images
-
-  lines.forEach(l => {
-    const match = /\s*(..)\s*(https:\/\/.*)/.exec(l);
-    if (match) {
-      imageSet.localizedUrls.push({
-        iso632Code: match[1].toLowerCase(),
-        url: match[2],
-      });
-    } else {
-      // NB: carriage returns seem to mess up the markdown, so should be removed
-      imageSet.caption += l + " ";
-    }
-  });
-  // NB: currently notion-md puts the caption in Alt, which noone sees (unless the image isn't found)
-  // We could inject a custom element handler to emit a <figure> in order to show the caption.
-  imageSet.caption = imageSet.caption?.trim();
-  //console.log(JSON.stringify(imageSet, null, 2));
+    lines.forEach(l => {
+      const match = /\s*(..)\s*(https:\/\/.*)/.exec(l);
+      if (match) {
+        imageSet.localizedUrls.push({
+          iso632Code: match[1].toLowerCase(),
+          url: match[2],
+        });
+      } else {
+        // NB: carriage returns seem to mess up the markdown, so should be removed
+        imageSet.caption += l + " ";
+      }
+    });
+    // NB: currently notion-md puts the caption in Alt, which noone sees (unless the image isn't found)
+    // We could inject a custom element handler to emit a <figure> in order to show the caption.
+    imageSet.caption = imageSet.caption?.trim();
+    //console.log(JSON.stringify(imageSet, null, 2));
+  }
 
   return imageSet;
 }

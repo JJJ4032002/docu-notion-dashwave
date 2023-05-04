@@ -49,11 +49,16 @@ export function run() {
     .option(
       "-p, --img-prefix-in-markdown <string>",
       "When referencing an image from markdown, prefix with this path instead of the full img-output-path. Should be used only in conjunction with --img-output-path."
+    )
+    .option(
+      "-b, --blog-cover-img-path <string>",
+      "While converting the image received from image property in notion pages. They will be stored in path given here. Default - All the images will be stored in ./static/img regaredless of whatever the path is given here.You can make folders in ./static by giving appropriate path. Syntax should be in the form of /path."
     );
 
   program.showHelpAfterError();
   program.parse();
   setLogLevel(program.opts().logLevel);
+  console.log(program.opts());
   console.log(JSON.stringify(program.opts));
   notionPull(program.opts() as DocuNotionOptions).then(() =>
     console.log("docu-notion Finished.")

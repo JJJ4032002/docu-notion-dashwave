@@ -6,7 +6,9 @@ import { exit } from "process";
 export function makeImagePersistencePlan(
   imageSet: ImageSet,
   imageOutputRootPath: string,
-  imagePrefix: string
+  imagePrefix: string,
+  blogCoverImgPath: string,
+  isBlogCoverImg: boolean
 ): void {
   if (imageSet.fileType?.ext) {
     // Since most images come from pasting screenshots, there isn't normally a filename. That's fine, we just make a hash of the url
@@ -23,28 +25,52 @@ export function makeImagePersistencePlan(
 
     const hash = hashOfString(thingToHash);
     imageSet.outputFileName = `${hash}.${imageSet.fileType.ext}`;
-
-    imageSet.primaryFileOutputPath = Path.posix.join(
-      imageOutputRootPath?.length > 0
-        ? imageOutputRootPath
-        : imageSet.pathToParentDocument!,
-      imageSet.outputFileName
-    );
-
-    if (imageOutputRootPath && imageSet.localizedUrls.length) {
-      error(
-        "imageOutputPath was declared, but one or more localizedUrls were found too. If you are going to localize screenshots, then you can't declare an imageOutputPath."
+    if (isBlogCoverImg && blogCoverImgPath === "") {
+      imageSet.filePathToUseInMarkdown = "/img/" + imageSet.outputFileName;
+      imageSet.primaryFileOutputPath = Path.posix.join(
+        "./static/img/",
+        imageSet.outputFileName
       );
-      exit(1);
-    }
+    } else if (isBlogCoverImg && [...blogCoverImgPath][0] !== "/") {
+      imageSet.filePathToUseInMarkdown =
+        "/" + blogCoverImgPath + "/" + imageSet.outputFileName;
+      imageSet.primaryFileOutputPath = Path.posix.join(
+        "./static/",
+        blogCoverImgPath,
+        "/",
+        imageSet.outputFileName
+      );
+    } else if (isBlogCoverImg && [...blogCoverImgPath][0] === "/") {
+      imageSet.filePathToUseInMarkdown =
+        blogCoverImgPath + "/" + imageSet.outputFileName;
+      imageSet.primaryFileOutputPath = Path.posix.join(
+        "./static",
+        blogCoverImgPath,
+        "/",
+        imageSet.outputFileName
+      );
+    } else {
+      imageSet.filePathToUseInMarkdown =
+        (imagePrefix?.length > 0 ? imagePrefix : ".") +
+        "/" +
+        imageSet.outputFileName;
 
-    imageSet.filePathToUseInMarkdown =
-      (imagePrefix?.length > 0 ? imagePrefix : ".") +
-      "/" +
-      imageSet.outputFileName;
+      imageSet.primaryFileOutputPath = Path.posix.join(
+        imageOutputRootPath?.length > 0
+          ? imageOutputRootPath
+          : imageSet.pathToParentDocument!,
+        imageSet.outputFileName
+      );
+    }
   } else {
     error(
       `Something wrong with the filetype extension on the blob we got from ${imageSet.primaryUrl}`
+    );
+    exit(1);
+  }
+  if (imageOutputRootPath && imageSet.localizedUrls.length) {
+    error(
+      "imageOutputPath was declared, but one or more localizedUrls were found too. If you are going to localize screenshots, then you can't declare an imageOutputPath."
     );
     exit(1);
   }

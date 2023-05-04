@@ -49,6 +49,7 @@ export async function blocksToMarkdown(
       imgOutputPath: "",
       imgPrefixInMarkdown: "",
       statusTag: "",
+      blogCoverImgPath: "",
     },
     pages: pages ?? [],
     counts: {

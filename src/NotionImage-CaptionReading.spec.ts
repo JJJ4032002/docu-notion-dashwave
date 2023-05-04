@@ -12,13 +12,13 @@ beforeAll(async () => {
 */
 /* eslint-disable @typescript-eslint/require-await */
 test("finds primary image url", async () => {
-  await initImageHandling("", "", []);
+  await initImageHandling("", "", [], "");
   const img = parseImageBlock(kImageBlockWithTwoLocalizedImages.image);
   expect(img.primaryUrl).toBe(kPrimaryImageUrl);
 });
 
 test("primary caption content after image links are removed", async () => {
-  await initImageHandling("", "", []);
+  await initImageHandling("", "", [], ""), "";
   const img = parseImageBlock(
     kImageBlockWithTwoLocalizedImagesWrappedWithActualCaptionText.image
   );
@@ -27,7 +27,7 @@ test("primary caption content after image links are removed", async () => {
 });
 
 test("gets localized image links", async () => {
-  await initImageHandling("", "", []);
+  await initImageHandling("", "", [], "");
   const img = parseImageBlock(
     kImageBlockWithTwoLocalizedImagesWrappedWithActualCaptionText.image
   );
