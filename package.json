@@ -22,7 +22,7 @@
     "pull-sample-site": "npm run ts -- -n $DOCU_NOTION_INTEGRATION_TOKEN -r $DOCU_NOTION_SAMPLE_ROOT_PAGE  --log-level debug",
     "// test with a semi-stable/public site:": "",
     "pull-sample": "npm run ts -- -n $DOCU_NOTION_INTEGRATION_TOKEN -r $DOCU_NOTION_SAMPLE_ROOT_PAGE -m ./sample --locales en,es,fr,de --log-level verbose",
-    "pull-sample-with-paths": "npm run ts -- -n $DOCU_NOTION_INTEGRATION_TOKEN -r $DOCU_NOTION_SAMPLE_ROOT_PAGE -m ./sample -b ./img/blog"
+    "pull-sample-with-paths": "npm run ts -- -n secret_Q6dlXBnSA8CJMthkGX5oODQpwGxT2KHXq7fX0YDwzKr -r bfa1d773384b4ae0939aa8fa60d00b1b -m ./sample -b ./img/blog"
   },
   "repository": {
     "type": "git",
